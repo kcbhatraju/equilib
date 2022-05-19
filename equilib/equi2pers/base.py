@@ -38,7 +38,7 @@ class Equi2Pers(object):
         self,
         height: int,
         width: int,
-        fov_x: float,
+        fov_x,
         skew: float = 0.0,
         z_down: bool = False,
         mode: str = "bilinear",
@@ -85,7 +85,7 @@ def equi2pers(
     rots: Rot,
     height: int,
     width: int,
-    fov_x: float,
+    fov_x,
     skew: float = 0.0,
     mode: str = "bilinear",
     z_down: bool = False,
@@ -150,7 +150,7 @@ def equi2pers(
         )
     else:
         raise ValueError
-
+    
     # make sure that the output batch dim is removed if it's only a single image
     if is_single:
         out = out.squeeze(0)
@@ -163,10 +163,10 @@ def get_bounding_fov(
     rots: Rot,
     height: int,
     width: int,
-    fov_x: float,
+    fov_x,
     skew: float = 0.0,
     z_down: bool = False,
-) -> np.ndarray:
+) -> torch.Tensor:
     _type = None
     if isinstance(equi, np.ndarray):
         _type = "numpy"

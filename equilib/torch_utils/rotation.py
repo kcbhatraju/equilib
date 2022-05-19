@@ -25,9 +25,9 @@ def create_global2camera_rotation_matrix(
 
 
 def create_rotation_matrix(
-    roll: float,
-    pitch: float,
-    yaw: float,
+    roll,
+    pitch,
+    yaw,
     z_down: bool = True,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),
@@ -43,12 +43,18 @@ def create_rotation_matrix(
     - R (torch.Tensor): 3x3 rotation matrix
     """
 
+    vals = [roll, pitch, yaw]
+    for i in range(len(vals)):
+        if not torch.is_tensor(vals[i]): vals[i] = torch.tensor(vals[i])
+    
+    roll, pitch, yaw = vals
+    
     # calculate rotation about the x-axis
     R_x = torch.tensor(
         [
             [1.0, 0.0, 0.0],
-            [0.0, np.cos(roll), -np.sin(roll)],
-            [0.0, np.sin(roll), np.cos(roll)],
+            [0.0, torch.cos(roll), -torch.sin(roll)],
+            [0.0, torch.sin(roll), torch.cos(roll)],
         ],
         dtype=dtype,
     )
@@ -57,9 +63,9 @@ def create_rotation_matrix(
         pitch = -pitch
     R_y = torch.tensor(
         [
-            [np.cos(pitch), 0.0, np.sin(pitch)],
+            [torch.cos(pitch), 0.0, torch.sin(pitch)],
             [0.0, 1.0, 0.0],
-            [-np.sin(pitch), 0.0, np.cos(pitch)],
+            [-torch.sin(pitch), 0.0, torch.cos(pitch)],
         ],
         dtype=dtype,
     )
@@ -68,8 +74,8 @@ def create_rotation_matrix(
         yaw = -yaw
     R_z = torch.tensor(
         [
-            [np.cos(yaw), -np.sin(yaw), 0.0],
-            [np.sin(yaw), np.cos(yaw), 0.0],
+            [torch.cos(yaw), -torch.sin(yaw), 0.0],
+            [torch.sin(yaw), torch.cos(yaw), 0.0],
             [0.0, 0.0, 1.0],
         ],
         dtype=dtype,
@@ -79,9 +85,9 @@ def create_rotation_matrix(
 
 
 def create_rotation_matrix_at_once(
-    roll: float,
-    pitch: float,
-    yaw: float,
+    roll,
+    pitch,
+    yaw,
     z_down: bool = True,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),
@@ -104,26 +110,32 @@ def create_rotation_matrix_at_once(
         pitch = -pitch
         yaw = -yaw
 
+    vals = [roll, pitch, yaw]
+    for i in range(len(vals)):
+        if not torch.is_tensor(vals[i]): vals[i] = torch.tensor(vals[i])
+    
+    roll, pitch, yaw = vals
+    
     return torch.tensor(
         [
             [
-                np.cos(yaw) * np.cos(pitch),
-                np.cos(yaw) * np.sin(pitch) * np.sin(roll)
-                - np.sin(yaw) * np.cos(roll),
-                np.cos(yaw) * np.sin(pitch) * np.cos(roll)
-                + np.sin(yaw) * np.sin(roll),
+                torch.cos(yaw) * torch.cos(pitch),
+                torch.cos(yaw) * torch.sin(pitch) * torch.sin(roll)
+                - torch.sin(yaw) * torch.cos(roll),
+                torch.cos(yaw) * torch.sin(pitch) * torch.cos(roll)
+                + torch.sin(yaw) * torch.sin(roll),
             ],
             [
-                np.sin(yaw) * np.cos(pitch),
-                np.sin(yaw) * np.sin(yaw) * np.sin(pitch) * np.sin(roll)
-                + np.cos(yaw) * np.cos(roll),
-                np.sin(yaw) * np.sin(pitch) * np.cos(roll)
-                - np.cos(yaw) * np.sin(roll),
+                torch.sin(yaw) * torch.cos(pitch),
+                torch.sin(yaw) * torch.sin(yaw) * torch.sin(pitch) * torch.sin(roll)
+                + torch.cos(yaw) * torch.cos(roll),
+                torch.sin(yaw) * torch.sin(pitch) * torch.cos(roll)
+                - torch.cos(yaw) * torch.sin(roll),
             ],
             [
-                -np.sin(pitch),
-                np.cos(pitch) * np.sin(roll),
-                np.cos(pitch) * np.cos(roll),
+                -torch.sin(pitch),
+                torch.cos(pitch) * torch.sin(roll),
+                torch.cos(pitch) * torch.cos(roll),
             ],
         ],
         dtype=dtype,

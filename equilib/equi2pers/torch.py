@@ -44,7 +44,7 @@ def prep_matrices(
     height: int,
     width: int,
     batch: int,
-    fov_x: float,
+    fov_x,
     skew: float = 0.0,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),
@@ -103,7 +103,7 @@ def convert_grid(
 
     # stack the pixel maps into a grid
     grid = torch.stack((uj, ui), dim=-3)
-
+    
     return grid
 
 
@@ -112,7 +112,7 @@ def run(
     rots: List[Dict[str, float]],
     height: int,
     width: int,
-    fov_x: float,
+    fov_x,
     skew: float,
     z_down: bool,
     mode: str,
@@ -239,7 +239,7 @@ def run(
     )
 
     # NOTE: we assume that `out` keeps it's dtype
-
+    
     out = (
         out.type(equi_dtype)
         if equi_dtype == torch.uint8
@@ -254,7 +254,7 @@ def get_bounding_fov(
     rots: List[Dict[str, float]],
     height: int,
     width: int,
-    fov_x: float,
+    fov_x,
     skew: float,
     z_down: bool,
 ) -> torch.Tensor:

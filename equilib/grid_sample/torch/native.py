@@ -46,7 +46,7 @@ def native(
     ), "ERR: img and grid should have the same dtype"
 
     _, _, h, w = img.shape
-
+    
     # grid in shape: (batch, channel, h_out, w_out)
     # grid out shape: (batch, h_out, w_out, channel)
     grid = grid.permute(0, 2, 3, 1)
@@ -86,7 +86,7 @@ def native(
         # padding mode defaults to 'zeros' and there is no 'wrapping' mode
         padding_mode="reflection",
     )
-
+    
     return out
 
 

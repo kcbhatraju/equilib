@@ -30,7 +30,9 @@ def create_intrinsic_matrix(
     returns:
     - K (torch.tensor): 3x3 intrinsic matrix
     """
-    f = width / (2 * torch.tan(deg2rad(torch.tensor(fov_x, dtype=dtype)) / 2))
+    
+    fov_x = fov_x.to(dtype) if torch.is_tensor(fov_x) else torch.tensor(fov_x,dtype=dtype)
+    f = width / (2 * torch.tan(deg2rad(fov_x) / 2))
     K = torch.tensor(
         [[f, skew, width / 2], [0.0, f, height / 2], [0.0, 0.0, 1.0]],
         dtype=dtype,
