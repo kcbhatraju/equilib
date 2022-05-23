@@ -12,6 +12,7 @@ from .torch import get_bounding_fov as get_bfov_torch, run as run_torch
 __all__ = ["Equi2Pers", "equi2pers"]
 
 ArrayLike = Union[np.ndarray, torch.Tensor]
+DataLike = Union[float, torch.Tensor]
 Rot = Union[Dict[str, float], List[Dict[str, float]]]
 
 
@@ -38,7 +39,7 @@ class Equi2Pers(object):
         self,
         height: int,
         width: int,
-        fov_x,
+        fov_x: DataLike,
         skew: float = 0.0,
         z_down: bool = False,
         mode: str = "bilinear",
@@ -85,7 +86,7 @@ def equi2pers(
     rots: Rot,
     height: int,
     width: int,
-    fov_x,
+    fov_x: DataLike,
     skew: float = 0.0,
     mode: str = "bilinear",
     z_down: bool = False,
@@ -163,7 +164,7 @@ def get_bounding_fov(
     rots: Rot,
     height: int,
     width: int,
-    fov_x,
+    fov_x: DataLike,
     skew: float = 0.0,
     z_down: bool = False,
 ) -> torch.Tensor:

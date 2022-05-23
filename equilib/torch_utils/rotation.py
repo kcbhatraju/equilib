@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-from typing import Dict, List
+from typing import Dict, List, Union
 
 import numpy as np
 
 import torch
 
+DataLike = Union[float, torch.Tensor]
 
 def create_global2camera_rotation_matrix(
     dtype: torch.dtype = torch.float32,
@@ -25,9 +26,9 @@ def create_global2camera_rotation_matrix(
 
 
 def create_rotation_matrix(
-    roll,
-    pitch,
-    yaw,
+    roll: DataLike,
+    pitch: DataLike,
+    yaw: DataLike,
     z_down: bool = True,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),
@@ -45,49 +46,45 @@ def create_rotation_matrix(
 
     vals = [roll, pitch, yaw]
     for i in range(len(vals)):
-        if not torch.is_tensor(vals[i]): vals[i] = torch.tensor(vals[i])
+        if not torch.is_tensor(vals[i]): vals[i] = torch.tensor(vals[i]).reshape(1)
     
     roll, pitch, yaw = vals
-    
+    zero = torch.zeros(1)
+    one = torch.ones(1)
+
     # calculate rotation about the x-axis
-    R_x = torch.tensor(
-        [
-            [1.0, 0.0, 0.0],
-            [0.0, torch.cos(roll), -torch.sin(roll)],
-            [0.0, torch.sin(roll), torch.cos(roll)],
-        ],
-        dtype=dtype,
-    )
+    R_x = torch.stack([
+                torch.stack([one, zero, zero]),
+                torch.stack([zero, torch.cos(roll), -torch.sin(roll)]),
+                torch.stack([zero, torch.sin(roll), torch.cos(roll)])]).reshape(3,3)
+    R_x = R_x.type(dtype)
+    
     # calculate rotation about the y-axis
     if not z_down:
         pitch = -pitch
-    R_y = torch.tensor(
-        [
-            [torch.cos(pitch), 0.0, torch.sin(pitch)],
-            [0.0, 1.0, 0.0],
-            [-torch.sin(pitch), 0.0, torch.cos(pitch)],
-        ],
-        dtype=dtype,
-    )
+    R_y = torch.stack([
+                torch.stack([torch.cos(pitch), zero, torch.sin(pitch)]),
+                torch.stack([zero, one, zero]),
+                torch.stack([-torch.sin(pitch), zero, torch.cos(pitch)])]).reshape(3,3)
+    R_y = R_y.type(dtype)
+    
     # calculate rotation about the z-axis
     if not z_down:
         yaw = -yaw
-    R_z = torch.tensor(
-        [
-            [torch.cos(yaw), -torch.sin(yaw), 0.0],
-            [torch.sin(yaw), torch.cos(yaw), 0.0],
-            [0.0, 0.0, 1.0],
-        ],
-        dtype=dtype,
-    )
+    R_z = torch.stack([
+                torch.stack([torch.cos(yaw), -torch.sin(yaw), zero]),
+                torch.stack([torch.sin(yaw), torch.cos(yaw), zero]),
+                torch.stack([zero, zero, one])]).reshape(3,3)
+    R_z = R_z.type(dtype)
+    
     R = R_z @ R_y @ R_x
     return R.to(device)
 
 
 def create_rotation_matrix_at_once(
-    roll,
-    pitch,
-    yaw,
+    roll: DataLike,
+    pitch: DataLike,
+    yaw: DataLike,
     z_down: bool = True,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from functools import lru_cache
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -16,12 +16,13 @@ from equilib.torch_utils import (
     pi,
 )
 
+DataLike = Union[float, torch.Tensor]
 
 @lru_cache(maxsize=128)
 def create_cam2global_matrix(
     height: int,
     width: int,
-    fov_x: float,
+    fov_x: DataLike,
     skew: float = 0.0,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),
@@ -44,7 +45,7 @@ def prep_matrices(
     height: int,
     width: int,
     batch: int,
-    fov_x,
+    fov_x: DataLike,
     skew: float = 0.0,
     dtype: torch.dtype = torch.float32,
     device: torch.device = torch.device("cpu"),
@@ -112,7 +113,7 @@ def run(
     rots: List[Dict[str, float]],
     height: int,
     width: int,
-    fov_x,
+    fov_x: DataLike,
     skew: float,
     z_down: bool,
     mode: str,
