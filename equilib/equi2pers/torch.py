@@ -324,7 +324,6 @@ def get_bounding_fov(
 
     # rotate and transform the grid
     M = matmul(m, G, R)
-
     # create a pixel map grid
     grid = convert_grid(M=M, h_equi=h_equi, w_equi=w_equi, method="robust")
 
