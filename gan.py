@@ -4,60 +4,31 @@ import numpy as np
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-from torch import autograd, nn, optim, no_grad, cat, empty, full, full_like, isnan, normal, randn, zeros
+from torch import autograd, nn, optim, no_grad, cat, empty, full, isnan, normal, randn, zeros
 from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data import Dataset, DataLoader
 
 import matplotlib.pyplot as plt
 
-from equilib.equi2pers.base import Equi2Pers
+from equilib.equi2pers.base import Equi2Pers # Uses equilib "equi2pers" function
 
-# autograd.set_detect_anomaly(True)
-
-
-class Unsupervised(Dataset):
-    def __init__(self, root):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.5,), (0.5,))
-        ])
-        self.imgs = [transform(Image.open(path.join(root,n)).convert("RGB")) for n in listdir(root)[:32*3]]
-    
-    def __len__(self):
-        return len(self.imgs)
-
-    def __getitem__(self, i):
-        return self.imgs[i]
-
+autograd.set_detect_anomaly(True) # shows training nan gradient cause
 
 # hyperparameters
-realroot = "val_256/"
 batch_size = 5
 num_epochs = 20
-lrg = 3e-4
 lrd = 3e-4
-beta = 0.5
-
-realset = Unsupervised(realroot)
-realloader = DataLoader(realset, batch_size=batch_size, shuffle=True)
-
-# visualize training images
-real_batch = next(iter(realloader))
-# plt.figure(figsize=(8,8))
-# plt.axis("off")
-# plt.title("Real Images")
-# plt.imshow(np.transpose(vutils.make_grid(real_batch,padding=True,normalize=True),(1,2,0)))
-# plt.show()
 
 print("Starting image generation...")
 gen_imgs = []
-for i in range(5*10):
+for i in range(5*10): # 10 epochs
     out = None
     for j in range(batch_size):
-        fov=normal(90.,0.02,(1,)).requires_grad_()
-        roll = normal(0.,0.02,(1,)).requires_grad_()
-        pitch = normal(0.,0.02,(1,)).requires_grad_()
+        # real image distribution; trying to make generator match this over time
+        fov=normal(90.,0.02,(1,)).requires_grad_() # zoom
+        roll = normal(0.,0.02,(1,)).requires_grad_() # z rotation
+        pitch = normal(0.,0.02,(1,)).requires_grad_() # y rotation
         
         equi2pers = Equi2Pers(height=256,
                         width=256, 
@@ -74,9 +45,10 @@ for i in range(5*10):
             out = new_img.unsqueeze(0)
         else:
             out = cat((out,new_img.unsqueeze(0)))
-    gen_imgs.append(out)
+    gen_imgs.append(out) # 50 batches of images of size (5, 3, 256, 256)
 print("Ending image generation...")
 
+# visualize real images
 real_batch = gen_imgs[0]
 plt.figure(figsize=(8,8))
 plt.axis("off")
@@ -89,14 +61,16 @@ class Generator(nn.Module):
     def __init__(self):
         super().__init__()
         self.img = transforms.ToTensor()(Image.open("equi.png"))
-        self.fov=normal(0.,0.02,(1,)).requires_grad_()
-        self.roll = normal(90,0.02,(1,)).requires_grad_()
-        self.pitch = normal(90,0.02,(1,)).requires_grad_()
+        # initial fake image distribution
+        self.fov=normal(0.,0.02,(1,)).requires_grad_() # zoom
+        self.roll = normal(90,0.02,(1,)).requires_grad_() # z rotation
+        self.pitch = normal(90,0.02,(1,)).requires_grad_() # y rotation
     
     def forward(self, yaw):
         output = None
         for i in range(batch_size):
-            equi2pers = Equi2Pers(height=256,
+            equi2pers = Equi2Pers(
+                        height=256,
                         width=256, 
                         fov_x=self.fov,
                         mode="bilinear"
@@ -111,8 +85,8 @@ class Generator(nn.Module):
                 output = new_img.unsqueeze(0)
             else:
                 output = cat((output,new_img.unsqueeze(0)))
-        output = nn.Tanh()(output)
-        return output
+        output = nn.Tanh()(output) # between -1 and 1
+        return output # shape: (5, 3, 256, 256)
         
 
 
@@ -128,7 +102,7 @@ class Discriminator(nn.Module):
             nn.Conv2d(5,1,4,1,0,bias=False),
             nn.Flatten(),
             nn.Linear(3721,1),
-            nn.Sigmoid()
+            nn.Sigmoid() # between 0 and 1
         )
     
     def forward(self, img):
@@ -137,6 +111,7 @@ class Discriminator(nn.Module):
 
 netG = Generator()
 netD = Discriminator()
+# set disriminator weights randomly (mean 0, std 0.02)
 classname = netD.__class__.__name__
 if classname.find("Conv") != -1:
     nn.init.normal_(netD.weight.data,0.0,0.02)
@@ -147,13 +122,8 @@ elif classname.find("BatchNorm") != -1:
 criterion = nn.BCELoss()
 fixed_noise = empty((batch_size, 1)).normal_(mean=180,std=60)
 
-optimD = optim.Adam(netD.parameters(), lr=lrd, betas=(beta,0.999))
+optimD = optim.Adam(netD.parameters(), lr=lrd)
 
-img_list = []
-lossG = []
-lossD = []
-show = -1
-org = [netG.fov.detach().clone(), netG.roll.detach().clone(), netG.pitch.detach().clone()]
 print("Starting training...")
 for epoch in range(num_epochs):
     print(f"Epoch {epoch+1}/{num_epochs}")
@@ -161,14 +131,14 @@ for epoch in range(num_epochs):
         print(f"Img {i+1}/{len(gen_imgs)}")
         b_size = imgs.shape[0]
         
-        gen_takes = 1000 if i == 0 else 1
+        gen_takes = 1000 if i == 0 else 1 # give generator head start in training
         for j in range(gen_takes):
             print(f"Generator {j+1}/{gen_takes}")
             ###################################
             # (1) trainG: maximize log(D(G(z)))
             ###################################
-            # print(imgs.shape)
             
+            # zero gradients
             netG.fov.grad = zeros(1)
             netG.roll.grad = zeros(1)
             netG.pitch.grad = zeros(1)
@@ -176,7 +146,10 @@ for epoch in range(num_epochs):
             optimD.zero_grad()
             
             noiseG = empty((batch_size, 1)).normal_(mean=180,std=60)
-            fakeNG = netG(noiseG)
+            fakeNG = netG(noiseG) # forward pass causes nan values after some training
+            # RuntimeError: Function 'AsinBackward0' returned nan values in its 0th output.
+            # Line of code: phi = torch.asin(M[..., 2] / torch.norm(M, dim=-1))
+            # equilib/equi2pers/torch.py, line 83
             print("fov:", netG.fov)
             print("roll:", netG.roll)
             print("pitch:", netG.pitch)
@@ -195,18 +168,9 @@ for epoch in range(num_epochs):
             print("pitch grad:", netG.pitch.grad)
             
             with no_grad():
-                if not isnan(netG.fov.grad):
-                    netG.fov -= 0.1*netG.fov.grad
-                else:
-                    netG.fov -= empty(netG.fov.shape).normal_(mean=0,std=0.02)
-                if not isnan(netG.roll.grad):
-                    netG.roll -= 0.1*netG.roll.grad
-                else:
-                    netG.roll -= empty(netG.roll.shape).normal_(mean=0,std=0.02)
-                if not isnan(netG.pitch.grad):
-                    netG.pitch -= 0.1*netG.pitch.grad
-                else:
-                    netG.pitch -= empty(netG.pitch.shape).normal_(mean=0,std=0.02)
+                netG.fov -= 0.1*netG.fov.grad
+                netG.roll -= 0.1*netG.roll.grad
+                netG.pitch -= 0.1*netG.pitch.grad
         
         #################################################
         # (1) trainD: maximize log(D(x)) + log(1-D(G(z)))
@@ -230,16 +194,14 @@ for epoch in range(num_epochs):
         fakeL = full((b_size,), 0.)
         errD_fake = criterion(fakeD, fakeL)
         print(errD_fake)
-        # errD_fake.backward(retain_graph=True)
+        
         errD = errD_real + errD_fake
         errD.backward(retain_graph=True)
         optimD.step()
 
-print(org)
 print(netG.fov)
 print(netG.roll)
 print(netG.pitch)
-print("show:", show)
 # visualize outputs after training
 with no_grad():
     fake = netG(fixed_noise)
