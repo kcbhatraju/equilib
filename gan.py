@@ -154,8 +154,6 @@ for epoch in range(num_epochs):
             print("roll:", netG.roll)
             print("pitch:", netG.pitch)
             
-            if(epoch==0 and i==0 and j==1): show = netG.fov.grad
-            
             output = netD(fakeNG).view(-1)
             print("DiscPred:", output)
             label = full((b_size,), 1.)

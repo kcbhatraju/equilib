@@ -80,7 +80,7 @@ def convert_grid(
 ) -> torch.Tensor:
 
     # convert to rotation
-    phi = torch.asin(M[..., 2] / torch.norm(M, dim=-1))
+    phi = torch.asin(M[..., 2] / torch.linalg.norm(M, dim=-1))
     theta = torch.atan2(M[..., 1], M[..., 0])
 
     if method == "robust":
