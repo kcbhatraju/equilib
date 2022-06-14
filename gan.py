@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-from torch import autograd, nn, optim, no_grad, cat, empty, full, isnan, normal, randn, zeros
+from torch import autograd, nn, optim, no_grad, cat, empty, full, normal, randn, zeros
 from torchvision import transforms
 import torchvision.utils as vutils
 from torch.utils.data import Dataset, DataLoader
@@ -18,11 +18,11 @@ autograd.set_detect_anomaly(True) # shows training nan gradient cause
 # hyperparameters
 batch_size = 5
 num_epochs = 20
-lrd = 3e-4
+lrd = 3e-6
 
 print("Starting image generation...")
 gen_imgs = []
-for i in range(5*10): # 10 epochs
+for i in range(5*10): # 50 batches
     out = None
     for j in range(batch_size):
         # real image distribution; trying to make generator match this over time
@@ -85,7 +85,7 @@ class Generator(nn.Module):
                 output = new_img.unsqueeze(0)
             else:
                 output = cat((output,new_img.unsqueeze(0)))
-        output = nn.Tanh()(output) # between -1 and 1
+        # output = nn.Tanh()(output) # between -1 and 1
         return output # shape: (5, 3, 256, 256)
         
 
@@ -94,18 +94,12 @@ class Discriminator(nn.Module):
     def __init__(self):
         super().__init__()
         self.main = nn.Sequential(
-            nn.Conv2d(3,4,4,2,1,bias=False),
-            nn.LeakyReLU(0.2,inplace=True),
-            nn.Conv2d(4,5,4,2,1,bias=False),
-            nn.BatchNorm2d(5),
-            nn.LeakyReLU(0.2,inplace=True),
-            nn.Conv2d(5,1,4,1,0,bias=False),
-            nn.Flatten(),
-            nn.Linear(3721,1),
+            nn.Linear(196608,1),
             nn.Sigmoid() # between 0 and 1
         )
     
     def forward(self, img):
+        img = img.view(batch_size,-1)
         return self.main(img)
 
 
@@ -131,7 +125,10 @@ for epoch in range(num_epochs):
         print(f"Img {i+1}/{len(gen_imgs)}")
         b_size = imgs.shape[0]
         
-        gen_takes = 1000 if i == 0 else 1 # give generator head start in training
+        if epoch==0 and i==0:
+            gen_takes = 1000 # give generator head start in training
+        else:
+            gen_takes = 1
         for j in range(gen_takes):
             print(f"Generator {j+1}/{gen_takes}")
             ###################################
