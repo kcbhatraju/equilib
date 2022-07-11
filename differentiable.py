@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 
-import torch# , torchviz
+import torch, torchviz
 torch.set_grad_enabled(True)
 
 from torch.distributions import Uniform, Normal
@@ -21,7 +21,7 @@ yaw = Uniform(0.,360.)
 def sample(distr):
     return distr.rsample().reshape(1).requires_grad_()
 
-grad = False
+grad = True
 if grad:
     params = [sample(fov), sample(roll), sample(pitch), sample(yaw)] # gradient test
 else:
@@ -44,7 +44,7 @@ if grad:
     for val in params:
         print(val.grad)
 
-    # torchviz.make_dot(new_img).render("computation_graph", format="png")
+    torchviz.make_dot(new_img).render("computation_graph", format="png")
 
 new_img = transforms.ToPILImage()(new_img)
 new_img.show()
