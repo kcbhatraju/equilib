@@ -49,8 +49,8 @@ def create_rotation_matrix(
         if not torch.is_tensor(vals[i]): vals[i] = torch.tensor(vals[i]).reshape(1)
     
     roll, pitch, yaw = vals
-    zero = torch.zeros(1)
-    one = torch.ones(1)
+    zero = torch.zeros([])
+    one = torch.ones([])
 
     # calculate rotation about the x-axis
     R_x = torch.stack([
