@@ -122,6 +122,9 @@ discrim_optim = optim.Adam(discrim.parameters(),lr=discrim_lr)
 # Process.plot(real_imgs[0],"Real Images")
 # Process.plot(gen(fixed_noise),"Original Fake Images")
 
+# IDENTITY LOSS
+# IMAGE-TO-IMAGE GAN / AUTOENCODERS
+
 # autograd.set_detect_anomaly(True)
 for e in range(num_epochs):
     print(f"Epoch {e+1}/{num_epochs}")
